@@ -12,7 +12,3 @@ numpy
 typeguard
 websocket-client
 waitress
-tempfile
-csv
-time
-uuid
