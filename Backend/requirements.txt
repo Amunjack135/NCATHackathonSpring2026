@@ -7,6 +7,12 @@ gevent-websocket
 psutil
 python-dateutil
 python-socketio
+pytest
+numpy
 typeguard
 websocket-client
 waitress
+tempfile
+csv
+time
+uuid
