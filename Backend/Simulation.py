@@ -15,6 +15,7 @@ RPM_SCALAR: float = 0.5
 LOAD_PERCENT_SCALAR: float = 0.5
 VIBRATION_SCALAR: float = 0.25
 MAXIMUM_HEALTH_THRESHOLD: float = 0.825
+ERROR_ADDITION_PER_TICK: float = 0.25
 
 
 class MyOilPump:
@@ -71,13 +72,13 @@ class MyOilPump:
 		if 0 <= self.__error_ratio__ <= MAX_ERROR_TICK:
 			self.__error_ratio__ += 1
 
-		error_multiplier: float = (2.5 * min(1., (self.__error_ratio__ / MAX_ERROR_TICK))) if self.__error_ratio__ > 0 else 1
-		target_temperature: float = (85 if self.is_running else BASE_TEMPERATURE) + (random.random() - 0.5) * 25.7 * error_multiplier
-		target_pressure: float = (205.4 if self.is_running else 100) + (random.random() - 0.5) * 58.2 * error_multiplier
-		target_flow_rate: float = (11.2 if self.is_running else 0) + (random.random() - 0.5) * 5.8 * error_multiplier
-		target_rpm: float = (2150 if self.is_running else 0) + (random.random() - 0.5) * 650 * error_multiplier
-		target_load_percent: float = (0.95 if self.is_running else 0) + (random.random() - 0.5) * error_multiplier
-		target_vibration: float = (2.95 if self.is_running else 0) + (random.random() - 0.5) * 1.45 * error_multiplier
+		error_multiplier: float = ((1 + ERROR_ADDITION_PER_TICK) * min(1., (self.__error_ratio__ / MAX_ERROR_TICK))) if self.__error_ratio__ > 0 else 1
+		target_temperature: float = ((85 * error_multiplier) if self.is_running else BASE_TEMPERATURE) + (random.random() - 1) * 25.7
+		target_pressure: float = ((205.4 * error_multiplier) if self.is_running else 100) + (random.random() - 1) * 58.2
+		target_flow_rate: float = ((11.2 * error_multiplier) if self.is_running else 0) + (random.random() - 1) * 5.8
+		target_rpm: float = ((2150 * error_multiplier) if self.is_running else 0) + (random.random() - 1) * 650
+		target_load_percent: float = ((0.95 * error_multiplier) if self.is_running else 0) + (random.random() - 1)
+		target_vibration: float = ((2.95 * error_multiplier) if self.is_running else 0) + (random.random() - 1) * 1.45
 
 		self.__temperature__ += (target_temperature - self.__temperature__) * TEMPERATURE_SCALAR
 		self.__pressure__ += (target_pressure - self.__pressure__) * PRESSURE_SCALAR
@@ -87,6 +88,13 @@ class MyOilPump:
 		self.__vibration__ += (target_vibration - self.__vibration__) * VIBRATION_SCALAR
 
 		self.__operational_hours__ += time_delta_seconds
+
+	def move_to_error_state(self) -> None:
+		"""
+		Forces this pump into an error state
+		"""
+
+		self.__error_ratio__ = 1
 
 	def get_estimated_pump_state(self) -> float:
 		"""
