@@ -15,7 +15,6 @@ import CustomMethodsVI.Logger as Logger
 import CustomMethodsVI.Stream as Stream
 
 import APIHandler
-import DevNull
 import Simulation
 import SocketHandler
 
@@ -23,7 +22,9 @@ import SocketHandler
 # Server Setup
 ROOT: FileSystem.Directory = FileSystem.File(__file__).parent
 PUMP_CSV_SAVE_TIME: float = 30
-LOG_DATA: list[str] = []
+LOG_DIRECTORY: FileSystem.Directory = ROOT.cd('logs')
+LOGFILE: FileSystem.File = LOG_DIRECTORY.file('latest.log')
+LOGSTREAM: Stream.FileStream = LOGFILE.open('w')
 
 event_stream: Stream.EventedStream[str] = Stream.EventedStream()
 line: list[str] = []
@@ -38,7 +39,8 @@ def on_std_write(msg: str) -> None:
 			data: str = ''.join(line)
 			line.clear()
 			sys.stdout.write(data)
-			LOG_DATA.append(data)
+			LOGSTREAM.write(data)
+			LOGSTREAM.flush()
 
 
 logger: Logger.Logger = Logger.Logger(event_stream, datetime.datetime.now().astimezone().tzinfo)
@@ -61,15 +63,17 @@ def health() -> flask.Response:
 	return flask.Response('OK', status=200)
 
 
-@app.route('/log')
-def log() -> flask.Response:
-	return flask.Response('<br/>'.join(LOG_DATA), status=200)
+@app.route('/logs')
+def logs() -> flask.Response:
+	return flask.Response(LOGFILE.single_read().replace('\n', '<br />'), status=200)
 
 
 # Main program code
 @app.after_request
 def on_response(response: flask.Response) -> flask.Response:
 	response.headers['Access-Control-Allow-Origin'] = '*'
+	response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+	response.headers['Access-Control-Allow-Headers'] = '*'
 	return response
 
 
@@ -157,8 +161,9 @@ def finalize() -> None:
 	simulation_thread.join()
 	logger.info('\033[38;2;255;50;50m[!] Server Closed\033[0m')
 	logger.detach()
-	sys.stdout.write(''.join(line))
-	LOG_DATA.clear()
+	event_stream.write('\n')
+	LOGSTREAM.flush()
+	LOGSTREAM.close()
 
 
 simulation_flag: threading.Event = threading.Event()
