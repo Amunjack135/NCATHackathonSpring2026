@@ -251,6 +251,14 @@ class MyOilPump:
 
 		return self.__running__
 
+	@property
+	def is_error_flag_set(self) -> bool:
+		"""
+		:return: Whether the error flag is set
+		"""
+
+		return self.__error_ratio__ > 0
+
 
 class MyOilFieldSimulation:
 	def __init__(self):

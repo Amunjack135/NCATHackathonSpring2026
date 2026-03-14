@@ -211,6 +211,34 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 		finally:
 			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-failure-reason\' (REQUEST={request})\033[0m')
 
+	@api.endpoint('/move-pump-to-error-state')
+	def on_api_move_pump_to_error_state(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> int | dict[str, str]:
+		"""
+		*API endpoint*
+		Triggers a runaway error state for the specified pump
+		:param session: The API session
+		:param request: The request body
+		"""
+
+		try:
+			request_pump_id: str = request.get('pump-id')
+
+			if request_pump_id is None or not isinstance(request_pump_id, str) or any(c not in string.hexdigits and c != '-' for c in request_pump_id):
+				return 400
+
+			target_pump_id: uuid.UUID = uuid.UUID(hex=request_pump_id)
+			pump: typing.Optional[Simulation.MyOilPump] = simulation.get_oil_pump(target_pump_id)
+
+			if pump is None:
+				return {'error': 'no-such-pump', 'pump-id': request_pump_id, 'result': False}
+			elif pump.is_error_flag_set:
+				return {'error': 'pump-already-erred', 'pump-id': request_pump_id, 'result': False}
+			else:
+				pump.move_to_error_state()
+				return {'success': 'moved-pump-to-error', 'result': True}
+		finally:
+			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-failure-reason\' (REQUEST={request})\033[0m')
+
 	def closer() -> None:
 		"""
 		Closes the API gateway
