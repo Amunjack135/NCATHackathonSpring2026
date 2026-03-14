@@ -6,18 +6,18 @@ import uuid
 
 from HealthModel import PumpHealthAnalyzer
 
-BASE_ERROR_CHANCE: float = 0.025
+BASE_ERROR_CHANCE: float = 0.0
 BASE_TEMPERATURE: float = 20
 BASE_PRESSURE: float = 1
 MAX_ERROR_TICK: int = 300
-TEMPERATURE_SCALAR: float = 0.1
+TEMPERATURE_SCALAR: float = 0.0075
 PRESSURE_SCALAR: float = 0.05
 FLOW_RATE_SCALAR: float = 0.001
 RPM_SCALAR: float = 0.5
 LOAD_PERCENT_SCALAR: float = 0.5
 VIBRATION_SCALAR: float = 0.25
 MAXIMUM_HEALTH_THRESHOLD: float = 0.825
-ERROR_ADDITION_PER_TICK: float = 0.25
+MAX_ERROR_MULTIPLIER: float = 3
 MAX_METRIC_STORE_TASK: float = 3600
 
 
@@ -49,6 +49,7 @@ class MyOilPump:
 		self.__error_ratio__: int = 0
 		self.__health_analyzer__: PumpHealthAnalyzer = PumpHealthAnalyzer(window_size=10)
 		self.__runtime_metrics__: dict[datetime.datetime, tuple[float | bool, ...]] = {}
+		self.__random__: random.Random = random.Random(self.uuid.bytes)
 
 	def start_pump(self) -> None:
 		"""
@@ -63,27 +64,29 @@ class MyOilPump:
 		"""
 
 		self.__running__ = False
+		self.__error_ratio__ = 0
 
 	def tick(self, now: datetime.datetime, time_delta_seconds: float) -> None:
 		"""
 		Ticks the pump
 		All internal values are updated
+		:param now: The current time
 		:param time_delta_seconds: The time since last tick in seconds
 		"""
 
-		if random.random() < BASE_ERROR_CHANCE:
+		if self.__random__.random() < BASE_ERROR_CHANCE:
 			self.__error_ratio__ = 1
 
-		if 0 <= self.__error_ratio__ <= MAX_ERROR_TICK:
+		if 0 < self.__error_ratio__ < MAX_ERROR_TICK:
 			self.__error_ratio__ += 1
 
-		error_multiplier: float = ((1 + ERROR_ADDITION_PER_TICK) * min(1., (self.__error_ratio__ / MAX_ERROR_TICK))) if self.__error_ratio__ > 0 else 1
-		target_temperature: float = ((85 * error_multiplier) if self.is_running else BASE_TEMPERATURE) + (random.random() - 1) * 25.7
-		target_pressure: float = ((205.4 * error_multiplier) if self.is_running else 100) + (random.random() - 1) * 58.2
-		target_flow_rate: float = ((11.2 * error_multiplier) if self.is_running else 0) + (random.random() - 1) * 5.8
-		target_rpm: float = ((2150 * error_multiplier) if self.is_running else 0) + (random.random() - 1) * 650
-		target_load_percent: float = ((0.95 * error_multiplier) if self.is_running else 0) + (random.random() - 1)
-		target_vibration: float = ((2.95 * error_multiplier) if self.is_running else 0) + (random.random() - 1) * 1.45
+		error_multiplier: float = (MAX_ERROR_MULTIPLIER * (self.__error_ratio__ / MAX_ERROR_TICK)) if self.__error_ratio__ > 0 else 1
+		target_temperature: float = ((85 * error_multiplier) if self.is_running else BASE_TEMPERATURE) + (self.__random__.random() - 0.5) * (25.7 if self.is_running else 1) * time_delta_seconds
+		target_pressure: float = ((205.4 * error_multiplier) if self.is_running else 1) + (self.__random__.random() - 0.5) * (58.2 if self.is_running else 0.025) * time_delta_seconds
+		target_flow_rate: float = ((11.2 * error_multiplier) if self.is_running else 0) + (self.__random__.random() - 0.5) * (5.8 if self.is_running else 0) * time_delta_seconds
+		target_rpm: float = ((2150 * error_multiplier) if self.is_running else 0) + (self.__random__.random() - 0.5) * (650 if self.is_running else 0) * time_delta_seconds
+		target_load_percent: float = ((0.95 * error_multiplier) if self.is_running else 0) + (self.__random__.random() - 0.5) * (1 if self.is_running else 0) * time_delta_seconds
+		target_vibration: float = ((2.95 * error_multiplier) if self.is_running else 0) + (self.__random__.random() - 0.5) * (1.45 if self.is_running else 0.05) * time_delta_seconds
 
 		self.__temperature__ += (target_temperature - self.__temperature__) * TEMPERATURE_SCALAR
 		self.__pressure__ += (target_pressure - self.__pressure__) * PRESSURE_SCALAR
@@ -95,9 +98,6 @@ class MyOilPump:
 		self.__operational_hours__ += time_delta_seconds
 		health: float = self.get_estimated_pump_state()
 		self.__runtime_metrics__[now] = (self.temperature, self.pressure, self.flow_rate, self.rpm, self.load_percent, self.vibration, self.operational_hours, health, self.is_running, self.requires_maintenance)
-
-		if health < 0.25:
-			self.stop_pump()
 
 		closed_metrics: list[datetime.datetime] = []
 
@@ -113,7 +113,8 @@ class MyOilPump:
 		Forces this pump into an error state
 		"""
 
-		self.__error_ratio__ = 1
+		if self.is_running:
+			self.__error_ratio__ = 1
 
 	def get_estimated_pump_state(self) -> float:
 		"""
