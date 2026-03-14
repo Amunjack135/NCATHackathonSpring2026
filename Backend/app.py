@@ -22,8 +22,10 @@ import SocketHandler
 
 # Server Setup
 ROOT: FileSystem.Directory = FileSystem.File(__file__).parent
+LOGS: FileSystem.Directory = ROOT.cd('logs')
 PUMP_CSV_SAVE_TIME: float = 30
-LOGFILE: FileSystem.File = ROOT.file('flask-latest.log')
+LOGS.create()
+LOGFILE: FileSystem.File = LOGS.file('latest.log')
 LOGSTREAM: Stream.FileStream = LOGFILE.open('w')
 
 event_stream: Stream.EventedStream[str] = Stream.EventedStream()
@@ -154,6 +156,7 @@ def finalize() -> None:
 	simulation_thread.join()
 	logger.info('\033[38;2;255;50;50m[!] Server Closed\033[0m')
 	logger.detach()
+	sys.stdout.write(''.join(line))
 	LOGSTREAM.flush()
 	LOGSTREAM.close()
 

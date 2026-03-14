@@ -88,6 +88,7 @@ class Logger:
 			raise IOError('Log is closed')
 
 		self.__stream__.write('\n==========[ Log Closed ]==========')
+		self.__stream__.flush()
 		self.__state__ = False
 		self.__stream__ = None
 
