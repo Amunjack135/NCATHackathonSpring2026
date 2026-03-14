@@ -80,12 +80,12 @@ class MyOilPump:
 		target_load_percent: float = ((0.95 * error_multiplier) if self.is_running else 0) + (random.random() - 1)
 		target_vibration: float = ((2.95 * error_multiplier) if self.is_running else 0) + (random.random() - 1) * 1.45
 
-		self.__temperature__ = (target_temperature - self.__temperature__) * TEMPERATURE_SCALAR
-		self.__pressure__ = (target_pressure - self.__pressure__) * PRESSURE_SCALAR
-		self.__flow_rate__ = (target_flow_rate - self.__flow_rate__) * FLOW_RATE_SCALAR
-		self.__rpm__ = (target_rpm - self.__rpm__) * RPM_SCALAR
-		self.__load_percent__ = (target_load_percent - self.__load_percent__) * LOAD_PERCENT_SCALAR
-		self.__vibration__ = (target_vibration - self.__vibration__) * VIBRATION_SCALAR
+		self.__temperature__ += (target_temperature - self.__temperature__) * TEMPERATURE_SCALAR
+		self.__pressure__ += (target_pressure - self.__pressure__) * PRESSURE_SCALAR
+		self.__flow_rate__ += (target_flow_rate - self.__flow_rate__) * FLOW_RATE_SCALAR
+		self.__rpm__ += (target_rpm - self.__rpm__) * RPM_SCALAR
+		self.__load_percent__ += (target_load_percent - self.__load_percent__) * LOAD_PERCENT_SCALAR
+		self.__vibration__ += (target_vibration - self.__vibration__) * VIBRATION_SCALAR
 
 		self.__operational_hours__ += time_delta_seconds
 
