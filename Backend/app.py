@@ -1,5 +1,4 @@
 import atexit
-
 import datetime
 import flask
 import psutil
@@ -20,6 +19,7 @@ import ServerInterface
 import Simulation
 import SocketHandler
 
+from HealthModel import PumpHealthAnalyzer
 
 # Server Setup
 ROOT: FileSystem.Directory = FileSystem.File(__file__).parent
@@ -123,9 +123,17 @@ def simulate(event: threading.Event) -> None:
 
 		logger.info('\033[38;2;50;255;50m[*] Oil field simulation started\033[0m')
 		csv_save_time: float = time.perf_counter() - PUMP_CSV_SAVE_TIME
+		summary_time: float = time.perf_counter()
 
 		while not event.is_set():
 			oil_field_simulation.tick()
+
+			if time.perf_counter() - summary_time >= 10:
+				summary_time = time.perf_counter()
+
+				for pump in oil_field_simulation.pumps:
+					print(type(pump).__name__, pump.uuid, pump.temperature, pump.pressure, pump.flow_rate, pump.rpm, pump.operational_hours, pump.requires_maintenance, pump.load_percent, pump.is_running)
+					PumpHealthAnalyzer.analyze_pump(pump)
 
 			if time.perf_counter() - csv_save_time >= PUMP_CSV_SAVE_TIME:
 				csv_save_time = time.perf_counter()

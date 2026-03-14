@@ -4,8 +4,6 @@ import time
 import typing
 import uuid
 
-from HealthModel import PumpHealthAnalyzer
-
 BASE_ERROR_CHANCE: float = 0.0
 BASE_TEMPERATURE: float = 20
 BASE_PRESSURE: float = 1
@@ -47,7 +45,6 @@ class MyOilPump:
 		self.__requires_maintenance__: bool = bool(requires_maintenance)
 		self.__running__: bool = False
 		self.__error_ratio__: int = 0
-		self.__health_analyzer__: PumpHealthAnalyzer = PumpHealthAnalyzer(window_size=10)
 		self.__runtime_metrics__: dict[datetime.datetime, tuple[float | bool, ...]] = {}
 		self.__random__: random.Random = random.Random(self.uuid.bytes)
 
@@ -107,7 +104,14 @@ class MyOilPump:
 
 		for stamp in closed_metrics:
 			del self.__runtime_metrics__[stamp]
+	def estimate_health(self) -> float:
+		"""
+		Estimates the pump health as a float between 0 and 1
+		:return: The estimated health
+		"""
 
+		return self.get_estimated_pump_state()		
+	
 	def move_to_error_state(self) -> None:
 		"""
 		Forces this pump into an error state
@@ -118,40 +122,13 @@ class MyOilPump:
 
 	def get_estimated_pump_state(self) -> float:
 		"""
-		Gets the estimated health of the pump (between 0 and 1) based on all pump values
-		:return: The pump health score (1.0 = healthy, 0.0 = failed)
+		Estimates the pump health state as a float between 0 and 1
+		:return: The estimated pump health
 		"""
-		health_metrics = self.__health_analyzer__.calculate_health(
-			temperature=self.__temperature__,
-			vibration=self.__vibration__,
-			load_percent=self.__load_percent__,
-			operational_hours=self.__operational_hours__
-		)
-		return health_metrics.overall_health
 
-	def get_health_metrics(self):
-		"""
-		Gets detailed health metrics for this pump
-		:return: HealthMetrics object with all diagnostic information
-		"""
-		return self.__health_analyzer__.calculate_health(
-			temperature=self.__temperature__,
-			vibration=self.__vibration__,
-			load_percent=self.__load_percent__,
-			operational_hours=self.__operational_hours__
-		)
-
-	def predict_failure(self):
-		"""
-		Predicts pump failure based on current trends
-		:return: FailurePrediction object with time-to-failure estimate
-		"""
-		return self.__health_analyzer__.predict_failure(
-			temperature=self.__temperature__,
-			vibration=self.__vibration__,
-			load_percent=self.__load_percent__,
-			operational_hours=self.__operational_hours__
-		)
+		error_multiplier: float = (MAX_ERROR_MULTIPLIER * (self.__error_ratio__ / MAX_ERROR_TICK)) if self.__error_ratio__ > 0 else 1
+		health_score: float = max(0, min(1, 1 - ((self.temperature / (85 * error_multiplier)) * 0.2 + (self.pressure / (205.4 * error_multiplier)) * 0.2 + (self.flow_rate / (11.2 * error_multiplier)) * 0.15 + (self.rpm / (2150 * error_multiplier)) * 0.15 + (self.load_percent / (0.95 * error_multiplier)) * 0.15 + (self.vibration / (2.95 * error_multiplier)) * 0.15)))
+		return health_score
 
 	def get_runtime_metric_for_timestamp(self, timestamp: float, delta: float = 0) -> typing.Optional[tuple[float | bool, ...]]:
 		"""

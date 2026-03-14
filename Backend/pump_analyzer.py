@@ -98,7 +98,18 @@ class PumpAnalyzer:
     Requires OPENAI_API_KEY environment variable to be set.
     """
 
+    __SINGLETON = ...
+    __INITIALIZED = False
+
+    def __new__(cls, *args, **kwargs):
+        if cls.__SINGLETON is ...:
+            cls.__SINGLETON = super().__new__(cls)
+        return cls.__SINGLETON
+
     def __init__(self):
+        if PumpAnalyzer.__INITIALIZED:
+            return
+
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             raise ValueError(
@@ -107,8 +118,7 @@ class PumpAnalyzer:
         self._client = OpenAI(api_key=api_key)
 
     # ── Public API ───────────────────────────────────────────
-
-    def analyze(self, data: dict) -> PumpAnalysis:
+    def analyze (data: dict) -> PumpAnalysis:
         """
         Analyze a single pump reading.
 
@@ -118,11 +128,11 @@ class PumpAnalyzer:
         Returns:
             PumpAnalysis dataclass with all output fields populated.
         """
-        reading  = self._parse_input(data)
+        reading  = PumpAnalyzer._parse_input(data)
         severity = _derive_severity(reading.anomaly_score)
         prompt   = _build_prompt(reading, severity)
-        raw_json = self._call_gemini(prompt)
-        fields   = self._parse_gemini_response(raw_json)
+        raw_json = PumpAnalyzer._call_gemini(PumpAnalyzer(), prompt)
+        fields   = PumpAnalyzer._parse_gemini_response(raw_json)
 
         return PumpAnalysis(
             pump_id                = reading.pump_id,
@@ -133,6 +143,32 @@ class PumpAnalyzer:
             ticket_summary         = fields["ticket_summary"],
             email_body             = fields["email_body"],
         )
+    
+    # def analyze(self, data: dict) -> PumpAnalysis:
+    #     """
+    #     Analyze a single pump reading.
+
+    #     Args:
+    #         data: dict matching the hackathon JSON spec + "anomaly_score" key.
+
+    #     Returns:
+    #         PumpAnalysis dataclass with all output fields populated.
+    #     """
+    #     reading  = self._parse_input(data)
+    #     severity = _derive_severity(reading.anomaly_score)
+    #     prompt   = _build_prompt(reading, severity)
+    #     raw_json = self._call_gemini(prompt)
+    #     fields   = self._parse_gemini_response(raw_json)
+
+    #     return PumpAnalysis(
+    #         pump_id                = reading.pump_id,
+    #         severity               = severity,
+    #         engineering_context    = fields["engineering_context"],
+    #         recommended_action     = fields["recommended_action"],
+    #         monitoring_description = fields["monitoring_description"],
+    #         ticket_summary         = fields["ticket_summary"],
+    #         email_body             = fields["email_body"],
+    #     )
 
     def analyze_batch(self, data_list: list) -> list:
         """
@@ -147,6 +183,7 @@ class PumpAnalyzer:
 
     @staticmethod
     def _parse_input(data: dict) -> PumpReading:
+        print(str(data), data.keys())
         required = [
             "pump-id", "temperature", "pressure", "flow-rate",
             "rpm", "operational-hours", "requires-maintenance",
@@ -170,7 +207,7 @@ class PumpAnalyzer:
             is_running           = bool(data["is-running"]),
             anomaly_score        = float(data["anomaly_score"]),
         )
-
+    
     def _call_gemini(self, prompt: str) -> str:
         """Call OpenAI API to generate structured response."""
         try:

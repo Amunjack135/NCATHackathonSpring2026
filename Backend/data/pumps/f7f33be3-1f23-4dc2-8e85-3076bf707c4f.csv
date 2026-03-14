@@ -1,0 +1,3 @@
+Timestamp,Temperature,Pressure,Flow Rate,RPM,Operational Hours,Requires Maintenance,Load Percent,Is Running
+1773513080.259695,20.0,1.0,0.0,0.0,0.0,False,0.0,False
+1773513090.274743,20.00032319094473,1.000011156150634,0.0,0.0,10.013456699998642,False,0.0,False
