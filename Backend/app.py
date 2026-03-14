@@ -63,7 +63,7 @@ def health() -> flask.Response:
 
 @app.route('/log')
 def log() -> flask.Response:
-	return flask.Response(''.join(LOG_DATA), status=200)
+	return flask.Response('\n'.join(LOG_DATA), status=200)
 
 
 # Main program code
