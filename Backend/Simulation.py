@@ -72,12 +72,12 @@ class MyOilPump:
 			self.__error_ratio__ += 1
 
 		error_multiplier: float = (2.5 * min(0., (self.__error_ratio__ / MAX_ERROR_TICK))) if self.__error_ratio__ > 0 else 1
-		target_temperature: float = (85 if self.is_running else BASE_TEMPERATURE) + (random.random() - 0.5) * 25.7 * error_multiplier
-		target_pressure: float = (205.4 if self.is_running else 100) + (random.random() - 0.5) * 58.2 * error_multiplier
-		target_flow_rate: float = (11.2 if self.is_running else 0) + (random.random() - 0.5) * 5.8 * error_multiplier
-		target_rpm: float = (2150 if self.is_running else 0) + (random.random() - 0.5) * 650 * error_multiplier
-		target_load_percent: float = (0.95 if self.is_running else 0) + (random.random() - 0.5) * error_multiplier
-		target_vibration: float = (2.95 if self.is_running else 0) + (random.random() - 0.5) * 1.45 * error_multiplier
+		target_temperature: float = (85 if self.is_running else BASE_TEMPERATURE) + (random.random() - 1) * 25.7 * error_multiplier
+		target_pressure: float = (205.4 if self.is_running else 100) + (random.random() - 1) * 58.2 * error_multiplier
+		target_flow_rate: float = (11.2 if self.is_running else 0) + (random.random() - 1) * 5.8 * error_multiplier
+		target_rpm: float = (2150 if self.is_running else 0) + (random.random() - 1) * 650 * error_multiplier
+		target_load_percent: float = (0.95 if self.is_running else 0) + (random.random() - 1) * error_multiplier
+		target_vibration: float = (2.95 if self.is_running else 0) + (random.random() - 1) * 1.45 * error_multiplier
 
 		self.__temperature__ = (target_temperature - self.__temperature__) * TEMPERATURE_SCALAR
 		self.__pressure__ = (target_pressure - self.__pressure__) * PRESSURE_SCALAR
