@@ -17,7 +17,7 @@ RPM_SCALAR: float = 0.5
 LOAD_PERCENT_SCALAR: float = 0.5
 VIBRATION_SCALAR: float = 0.25
 MAXIMUM_HEALTH_THRESHOLD: float = 0.825
-ERROR_ADDITION_PER_TICK: float = 0.25
+MAX_ERROR_MULTIPLIER: float = 2
 MAX_METRIC_STORE_TASK: float = 3600
 
 
@@ -78,7 +78,7 @@ class MyOilPump:
 		if 0 < self.__error_ratio__ <= MAX_ERROR_TICK:
 			self.__error_ratio__ += 1
 
-		error_multiplier: float = ((1 + ERROR_ADDITION_PER_TICK) * self.__error_ratio__) if self.__error_ratio__ > 0 else 1
+		error_multiplier: float = (MAX_ERROR_MULTIPLIER * (self.__error_ratio__ / MAX_ERROR_TICK)) if self.__error_ratio__ > 0 else 1
 		target_temperature: float = ((85 * error_multiplier) if self.is_running else BASE_TEMPERATURE) + (self.__random__.random() - 0.5) * (25.7 if self.is_running else 1) * time_delta_seconds
 		target_pressure: float = ((205.4 * error_multiplier) if self.is_running else 1) + (self.__random__.random() - 0.5) * (58.2 if self.is_running else 0.025) * time_delta_seconds
 		target_flow_rate: float = ((11.2 * error_multiplier) if self.is_running else 0) + (self.__random__.random() - 0.5) * (5.8 if self.is_running else 0) * time_delta_seconds

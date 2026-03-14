@@ -131,9 +131,13 @@ def gui_main(halt_event: threading.Event, logger: Logger.Logger, simulation: Sim
 				times: list[float] = list(metrics.keys())
 				max_time: float = max(times) + 1
 				min_time: float = max(-1., max_time - 30)
+				closed_metrics: tuple[float, ...] = tuple(timestamp for timestamp in metrics if timestamp < min_time)
 				dpg.configure_item(text, color=COLOR_GREEN if pump.is_running else COLOR_RED)
 
-				dpg.set_value(pump_temperature, [times, temperatures := [metric[0] for metric in metrics.values()]])
+				for closed in closed_metrics:
+					del metrics[closed]
+
+				dpg.set_value(pump_temperature, [times, temperatures := [metric[0] for timestamp, metric in metrics.items() if timestamp]])
 				dpg.set_value(pump_pressure, [times, pressures := [metric[1] for metric in metrics.values()]])
 				dpg.set_value(pump_flow_rate, [times, flow_rates := [metric[2] for metric in metrics.values()]])
 				dpg.set_value(pump_rpm, [times, rpms := [metric[3] for metric in metrics.values()]])
