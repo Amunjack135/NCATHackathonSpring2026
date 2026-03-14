@@ -1060,7 +1060,7 @@ class FlaskServerAPI:
 		self.__connector__: typing.Optional[collections.abc.Callable[[FlaskServerAPI.APISessionInfo, collections.abc.Mapping[str, typing.Any]], bool | int | typing.Mapping[str, typing.Any] | None] | tuple[bool | int, collections.abc.Mapping[str, typing.Any]]] = None
 		self.__disconnector__: typing.Optional[collections.abc.Callable[[FlaskServerAPI.APISessionInfo, collections.abc.Mapping[str, typing.Any]], collections.abc.Mapping[str, typing.Any] | None]] = None
 		self.__setup_auth_channels__()
-		self.__app__.add_url_rule(f'{self.__route__}/<path:route>', view_func=self.__flask_route__, provide_automatic_options=False, methods=('POST', 'GET'), endpoint=f'{self.__route__.replace('/', '_')}_flaskroute')
+		self.__app__.add_url_rule(f'{self.__route__}/<path:route>', view_func=self.__flask_route__, provide_automatic_options=True, methods=('POST', 'GET'), endpoint=f'{self.__route__.replace('/', '_')}_flaskroute')
 			
 	def __setup_auth_channels__(self) -> None:
 		"""
@@ -1075,7 +1075,7 @@ class FlaskServerAPI:
 		@self.__app__.route(f'{self.__route__}/connect', methods=('POST', 'GET'), endpoint=f'{self.__route__.replace('/', '_')}_connect')
 		def connect():
 			if flask.request.content_type != 'application/json':
-				return flask.Response(response={'error': 'invalid-content-type'}, status=415, content_type='application/json')
+				return flask.Response(response=json.dumps({'error': 'invalid-content-type'}), status=415, content_type='application/json')
 			elif self.__connector__ is None:
 				return flask.Response(json.dumps({'auth': 0}), content_type='application/json')
 
@@ -1123,7 +1123,7 @@ class FlaskServerAPI:
 				return flask.Response(response=json.dumps({'error': 'invalid-content-type'}), status=415, content_type='application/json')
 			elif (session := self.__sessions__.get(auth := FlaskServerAPI.__parse_auth_token__(flask.request.json.get('auth')))) is not None and not session.closed:
 				del self.__sessions__[auth]
-				response: dict[typing.Any] | None = None
+				response: dict[typing.Any, typing.Any] | None = None
 
 				if self.__disconnector__ is not None:
 					try:
