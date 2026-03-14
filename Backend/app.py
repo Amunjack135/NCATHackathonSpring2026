@@ -22,11 +22,8 @@ import SocketHandler
 
 # Server Setup
 ROOT: FileSystem.Directory = FileSystem.File(__file__).parent
-LOGS: FileSystem.Directory = ROOT.cd('flask-application-logs')
 PUMP_CSV_SAVE_TIME: float = 30
-LOGS.create()
-LOGFILE: FileSystem.File = LOGS.file('latest.log')
-LOGSTREAM: Stream.FileStream = LOGFILE.open('w')
+LOG_DATA: list[str] = []
 
 event_stream: Stream.EventedStream[str] = Stream.EventedStream()
 line: list[str] = []
@@ -41,8 +38,7 @@ def on_std_write(msg: str) -> None:
 			data: str = ''.join(line)
 			line.clear()
 			sys.stdout.write(data)
-			LOGSTREAM.write(data)
-			LOGSTREAM.flush()
+			LOG_DATA.append(data)
 
 
 logger: Logger.Logger = Logger.Logger(event_stream, datetime.datetime.now().astimezone().tzinfo)
@@ -66,9 +62,8 @@ def health() -> flask.Response:
 
 
 @app.route('/log')
-def health() -> flask.Response:
-	log_data: str = LOGFILE.single_read()
-	return flask.Response(log_data, status=200)
+def log() -> flask.Response:
+	return flask.Response(''.join(LOG_DATA), status=200)
 
 
 # Main program code
@@ -163,8 +158,7 @@ def finalize() -> None:
 	logger.info('\033[38;2;255;50;50m[!] Server Closed\033[0m')
 	logger.detach()
 	sys.stdout.write(''.join(line))
-	LOGSTREAM.flush()
-	LOGSTREAM.close()
+	LOG_DATA.clear()
 
 
 simulation_flag: threading.Event = threading.Event()
