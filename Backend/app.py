@@ -23,7 +23,7 @@ import SocketHandler
 # Server Setup
 ROOT: FileSystem.Directory = FileSystem.File(__file__).parent
 PUMP_CSV_SAVE_TIME: float = 30
-LOGFILE: FileSystem.File = ROOT.file('latest.log')
+LOGFILE: FileSystem.File = ROOT.file('flask-latest.log')
 LOGSTREAM: Stream.FileStream = LOGFILE.open('w')
 
 event_stream: Stream.EventedStream[str] = Stream.EventedStream()
