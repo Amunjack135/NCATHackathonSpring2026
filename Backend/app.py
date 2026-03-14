@@ -51,7 +51,7 @@ def main() -> None:
 	"""
 
 	logger.info('\033[38;2;50;255;50m[*] Server Started\033[0m')
-	waitress.serve(app, port=8080)
+	waitress.serve(app, port=443)
 	simulation_flag.set()
 
 
