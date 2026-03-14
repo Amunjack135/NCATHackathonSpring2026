@@ -2,6 +2,7 @@ import atexit
 
 import datetime
 import flask
+import psutil
 import sys
 import threading
 import time
@@ -84,7 +85,7 @@ def main() -> None:
 	"""
 
 	logger.info('\033[38;2;50;255;50m[*] Server Started\033[0m')
-	waitress.serve(app, port=443)
+	waitress.serve(app, port=443, threads=psutil.cpu_count())
 	simulation_flag.set()
 
 

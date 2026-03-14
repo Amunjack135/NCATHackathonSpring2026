@@ -1,3 +1,4 @@
+import datetime
 import random
 import time
 import typing
@@ -17,6 +18,7 @@ LOAD_PERCENT_SCALAR: float = 0.5
 VIBRATION_SCALAR: float = 0.25
 MAXIMUM_HEALTH_THRESHOLD: float = 0.825
 ERROR_ADDITION_PER_TICK: float = 0.25
+MAX_METRIC_STORE_TASK: float = 3600
 
 
 class MyOilPump:
@@ -46,6 +48,7 @@ class MyOilPump:
 		self.__running__: bool = False
 		self.__error_ratio__: int = 0
 		self.__health_analyzer__: PumpHealthAnalyzer = PumpHealthAnalyzer(window_size=10)
+		self.__runtime_metrics__: dict[datetime.datetime, tuple[float | bool, ...]] = {}
 
 	def start_pump(self) -> None:
 		"""
@@ -61,7 +64,7 @@ class MyOilPump:
 
 		self.__running__ = False
 
-	def tick(self, time_delta_seconds: float) -> None:
+	def tick(self, now: datetime.datetime, time_delta_seconds: float) -> None:
 		"""
 		Ticks the pump
 		All internal values are updated
@@ -90,6 +93,16 @@ class MyOilPump:
 		self.__vibration__ += (target_vibration - self.__vibration__) * VIBRATION_SCALAR
 
 		self.__operational_hours__ += time_delta_seconds
+		self.__runtime_metrics__[now] = (self.temperature, self.pressure, self.flow_rate, self.rpm, self.load_percent, self.vibration, self.operational_hours)
+
+		closed_metrics: list[datetime.datetime] = []
+
+		for stamp in self.__runtime_metrics__:
+			if (now - stamp).total_seconds() > MAX_METRIC_STORE_TASK:
+				closed_metrics.append(stamp)
+
+		for stamp in closed_metrics:
+			del self.__runtime_metrics__[stamp]
 
 	def move_to_error_state(self) -> None:
 		"""
@@ -134,6 +147,25 @@ class MyOilPump:
 			load_percent=self.__load_percent__,
 			operational_hours=self.__operational_hours__
 		)
+
+	def get_runtime_metric_for_timestamp(self, timestamp: float, delta: float = 0) -> typing.Optional[tuple[float | bool, ...]]:
+		"""
+		Gets the pump status for a specified timestamp
+		:param timestamp: The timestamp
+		:param delta: The delta to search around
+		:return: The data or None if not found
+		"""
+
+		target: datetime.datetime = datetime.datetime.fromtimestamp(timestamp)
+
+		if (data := self.__runtime_metrics__.get(target)) is not None:
+			return data
+
+		for stamp, data in self.__runtime_metrics__.items():
+			if abs(stamp.timestamp() - timestamp) <= delta:
+				return data
+
+		return None
 
 	@property
 	def uuid(self) -> uuid.UUID:
@@ -239,10 +271,11 @@ class MyOilFieldSimulation:
 
 		time_point: float = time.perf_counter()
 		time_delta: float = 0 if self.__last_tick__ is ... else (time_point - self.__last_tick__)
+		now: datetime.datetime = datetime.datetime.now(datetime.timezone.utc)
 		self.__last_tick__ = time_point
 
 		for pump in self.__pumps__.values():
-			pump.tick(time_delta)
+			pump.tick(now, time_delta)
 
 	def add_oil_pump(self, *, temperature: float = BASE_TEMPERATURE, vibration: float = 0, pressure: float = BASE_PRESSURE, flow_rate: float = 0, rpm: float = 0, operational_hours: float = 0, requires_maintenance: bool = False, load_percent: float = 0) -> uuid.UUID:
 		"""

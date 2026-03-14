@@ -33,7 +33,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 		try:
 			return {str(pump.uuid): pump.get_estimated_pump_state() for pump in simulation.pumps}
 		finally:
-			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pumps\' (SESSION={session.token}, REQUEST={request})\033[0m')
+			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pumps\' (REQUEST={request})\033[0m')
 
 	@api.endpoint('/pump-status')
 	def on_api_pump_status(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> int | dict[str, float | str | bool]:
@@ -48,7 +48,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 		try:
 			request_pump_id: str = request.get('pump-id')
 
-			if not isinstance(request_pump_id, str) and all(c in string.hexdigits for c in request_pump_id):
+			if request_pump_id is None or not isinstance(request_pump_id, str) or any(c not in string.hexdigits and c != '-' for c in request_pump_id):
 				return 400
 
 			target_pump_id: uuid.UUID = uuid.UUID(hex=request_pump_id)
@@ -71,7 +71,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 				'timestamp': datetime.datetime.now(datetime.timezone.utc).timestamp(),
 			}
 		finally:
-			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-status\' (SESSION={session.token}, REQUEST={request})\033[0m')
+			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-status\' (REQUEST={request})\033[0m')
 
 	@api.endpoint('/pump-start')
 	def on_api_pump_start(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> int | dict[str, bool | str]:
@@ -88,7 +88,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 			request_pump_id: str = request.get('pump-id')
 			request_override: bool = request.get('override')
 
-			if (not isinstance(request_pump_id, str) and all(c in string.hexdigits for c in request_pump_id)) or not isinstance(request_override, bool):
+			if request_pump_id is None or request_override is None or not isinstance(request_pump_id, str) or any(c not in string.hexdigits and c != '-' for c in request_pump_id) or not isinstance(request_override, bool):
 				return 400
 
 			target_pump_id: uuid.UUID = uuid.UUID(hex=request_pump_id)
@@ -104,7 +104,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 			else:
 				return {'result': False, 'start-message': 'Pump Health Low'}
 		finally:
-			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-start\' (SESSION={session.token}, REQUEST={request})\033[0m')
+			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-start\' (REQUEST={request})\033[0m')
 
 	@api.endpoint('/pump-stop')
 	def on_api_pump_stop(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> int | dict[str, bool | str]:
@@ -119,7 +119,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 		try:
 			request_pump_id: str = request.get('pump-id')
 
-			if (not isinstance(request_pump_id, str) and all(c in string.hexdigits for c in request_pump_id)):
+			if request_pump_id is None or not isinstance(request_pump_id, str) or any(c not in string.hexdigits and c != '-' for c in request_pump_id):
 				return 400
 
 			target_pump_id: uuid.UUID = uuid.UUID(hex=request_pump_id)
@@ -132,7 +132,37 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 			else:
 				return {'result': True, 'start-message': 'Pump Stopped'}
 		finally:
-			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-stop\' (SESSION={session.token}, REQUEST={request})\033[0m')
+			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-stop\' (REQUEST={request})\033[0m')
+
+	@api.endpoint('/pump-failure-reason')
+	def on_api_pump_failure_reason(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> int | dict[str, str]:
+		"""
+		*API endpoint*
+		Gets the AI summary for a pump failure
+		:param session: The API session
+		:param request: The request body
+		:return: Pump failure reason
+		"""
+
+		try:
+			request_pump_id: str = request.get('pump-id')
+			request_timestamp: float = request.get('timestamp')
+
+			if request_pump_id is None or request_timestamp is None or not isinstance(request_pump_id, str) or any(c not in string.hexdigits and c != '-' for c in request_pump_id) or not isinstance(request_timestamp, float) or (request_timestamp := float(request_timestamp)) <= 0:
+				return 400
+
+			target_pump_id: uuid.UUID = uuid.UUID(hex=request_pump_id)
+			pump: typing.Optional[Simulation.MyOilPump] = simulation.get_oil_pump(target_pump_id)
+			metric: typing.Optional[tuple[float | bool]] = pump.get_runtime_metric_for_timestamp(request_timestamp, 1) if pump is not None else pump
+
+			if pump is None:
+				return {'error': 'no-such-pump', 'pump-id': request_pump_id}
+			elif metric is None:
+				return {'error': 'no-such-metric', 'timestamp': request_timestamp}
+			else:
+				return {'summary': ''}
+		finally:
+			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-failure-reason\' (REQUEST={request})\033[0m')
 
 	def closer() -> None:
 		"""
