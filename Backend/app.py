@@ -2,6 +2,7 @@ import atexit
 
 import datetime
 import flask
+import io
 import sys
 import threading
 import time
@@ -15,6 +16,7 @@ import CustomMethodsVI.Logger as Logger
 import CustomMethodsVI.Stream as Stream
 
 import APIHandler
+import DevNull
 import Simulation
 import SocketHandler
 
@@ -23,7 +25,7 @@ import SocketHandler
 ROOT: FileSystem.Directory = FileSystem.File(__file__).parent
 PUMP_CSV_SAVE_TIME: float = 10
 
-logger: Logger.Logger = Logger.Logger(sys.stdout, datetime.datetime.now().astimezone().tzinfo)
+logger: Logger.Logger = Logger.Logger(sys.stdout if isinstance(sys.stdout, io.IOBase) else DevNull.NullStream(), datetime.datetime.now().astimezone().tzinfo)
 pump_data_directory: FileSystem.Directory = ROOT.cd('/data/pumps')
 oil_field_simulation: Simulation.MyOilFieldSimulation = Simulation.MyOilFieldSimulation()
 app: flask.Flask = flask.Flask(__name__)

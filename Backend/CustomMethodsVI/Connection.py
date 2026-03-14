@@ -1060,7 +1060,7 @@ class FlaskServerAPI:
 		self.__connector__: typing.Optional[collections.abc.Callable[[FlaskServerAPI.APISessionInfo, collections.abc.Mapping[str, typing.Any]], bool | int | typing.Mapping[str, typing.Any] | None] | tuple[bool | int, collections.abc.Mapping[str, typing.Any]]] = None
 		self.__disconnector__: typing.Optional[collections.abc.Callable[[FlaskServerAPI.APISessionInfo, collections.abc.Mapping[str, typing.Any]], collections.abc.Mapping[str, typing.Any] | None]] = None
 		self.__setup_auth_channels__()
-		self.__app__.add_url_rule(f'{self.__route__}/<path:route>', view_func=self.__flask_route__, provide_automatic_options=False, methods=('POST',), endpoint=f'{self.__route__.replace('/', '_')}_flaskroute')
+		self.__app__.add_url_rule(f'{self.__route__}/<path:route>', view_func=self.__flask_route__, provide_automatic_options=False, methods=('POST', 'GET'), endpoint=f'{self.__route__.replace('/', '_')}_flaskroute')
 			
 	def __setup_auth_channels__(self) -> None:
 		"""
@@ -1072,7 +1072,7 @@ class FlaskServerAPI:
 		if not self.__auth__:
 			return
 		
-		@self.__app__.route(f'{self.__route__}/connect', methods=('POST',), endpoint=f'{self.__route__.replace('/', '_')}_connect')
+		@self.__app__.route(f'{self.__route__}/connect', methods=('POST', 'GET'), endpoint=f'{self.__route__.replace('/', '_')}_connect')
 		def connect():
 			if flask.request.content_type != 'application/json':
 				return flask.Response(response={'error': 'invalid-content-type'}, status=415, content_type='application/json')
@@ -1117,7 +1117,7 @@ class FlaskServerAPI:
 			else:
 				return flask.Response(json.dumps({'auth': None}), status=401, content_type='application/json')
 		
-		@self.__app__.route(f'{self.__route__}/disconnect', methods=('POST',), endpoint=f'{self.__route__.replace('/', '_')}_disconnect')
+		@self.__app__.route(f'{self.__route__}/disconnect', methods=('POST', 'GET'), endpoint=f'{self.__route__.replace('/', '_')}_disconnect')
 		def disconnect():
 			if flask.request.content_type != 'application/json':
 				return flask.Response(response=json.dumps({'error': 'invalid-content-type'}), status=415, content_type='application/json')
