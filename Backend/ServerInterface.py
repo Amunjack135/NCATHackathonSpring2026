@@ -14,6 +14,7 @@ import Simulation
 BG_COLOR_0: tuple[int, int, int, int] = (0x22, 0x22, 0x22, 0xFF)
 COLOR_RED: tuple[int, int, int, int] = (0xFF, 0x00, 0x00, 0xFF)
 COLOR_GREEN: tuple[int, int, int, int] = (0x00, 0xFF, 0x00, 0xFF)
+COLOR_WHITE: tuple[int, int, int, int] = (0xFF, 0xFF, 0xFF, 0xFF)
 
 FIT_OVERHEAD: float = 1.25
 
@@ -98,6 +99,7 @@ def gui_main(halt_event: threading.Event, logger: Logger.Logger, simulation: Sim
 										rpm_text: int = dpg.add_text('RPM: N/A')
 										load_percent_text: int = dpg.add_text('Load %: N/A')
 										vibration_text: int = dpg.add_text('Vibration: N/A')
+										error_tick_text: int = dpg.add_text('Error Tick: N/A')
 
 							with dpg.plot(label='Pump Metrics 0', width=-1, height=round(row_height * 0.95)):
 								dpg.add_plot_legend(outside=True, horizontal=True)
@@ -121,18 +123,19 @@ def gui_main(halt_event: threading.Event, logger: Logger.Logger, simulation: Sim
 
 				pump_data[pump.uuid] = (text, pump_temperature, pump_pressure, pump_flow_rate, pump_rpm, pump_load, pump_vibration, {
 					0: (pump.temperature, pump.pressure, pump.flow_rate, pump.rpm, pump.load_percent, pump.vibration)
-				}, (xaxis0, xaxis1, yaxis0, yaxis1, yaxis2, yaxis3, yaxis4, yaxis5), (temperature_text, pressure_text, flow_rate_text, rpm_text, load_percent_text, vibration_text))
+				}, (xaxis0, xaxis1, yaxis0, yaxis1, yaxis2, yaxis3, yaxis4, yaxis5), (temperature_text, pressure_text, flow_rate_text, rpm_text, load_percent_text, vibration_text, error_tick_text))
 
 			else:
 				text, pump_temperature, pump_pressure, pump_flow_rate, pump_rpm, pump_load, pump_vibration, metrics, axes, texts = pump_data[pump.uuid]
 				xaxis0, xaxis1, yaxis0, yaxis1, yaxis2, yaxis3, yaxis4, yaxis5 = axes
-				temperature_text, pressure_text, flow_rate_text, rpm_text, load_percent_text, vibration_text = texts
+				temperature_text, pressure_text, flow_rate_text, rpm_text, load_percent_text, vibration_text, error_tick_text = texts
 				metrics[now - start_time] = (pump.temperature, pump.pressure, pump.flow_rate, pump.rpm, pump.load_percent, pump.vibration)
 				times: list[float] = list(metrics.keys())
 				max_time: float = max(times) + 1
 				min_time: float = max(-1., max_time - 30)
 				closed_metrics: tuple[float, ...] = tuple(timestamp for timestamp in metrics if timestamp < min_time)
 				dpg.configure_item(text, color=COLOR_GREEN if pump.is_running else COLOR_RED)
+				dpg.configure_item(error_tick_text, color=COLOR_WHITE if pump.__error_ratio__ == 0 else COLOR_RED)
 
 				for closed in closed_metrics:
 					del metrics[closed]
@@ -161,6 +164,7 @@ def gui_main(halt_event: threading.Event, logger: Logger.Logger, simulation: Sim
 				dpg.set_value(rpm_text, f'RPM: {pump.rpm:.2f} RPM')
 				dpg.set_value(load_percent_text, f'Load: {pump.load_percent:.2f} %')
 				dpg.set_value(vibration_text, f'Vibration: {pump.vibration:.2f} Hz')
+				dpg.set_value(error_tick_text, f'Error Tick: {pump.__error_ratio__}')
 
 	dpg.create_context()
 	dpg.create_viewport(title='Pipe Dot Net Server Monitor')

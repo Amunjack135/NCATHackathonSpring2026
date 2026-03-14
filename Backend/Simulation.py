@@ -64,18 +64,20 @@ class MyOilPump:
 		"""
 
 		self.__running__ = False
+		self.__error_ratio__ = 0
 
 	def tick(self, now: datetime.datetime, time_delta_seconds: float) -> None:
 		"""
 		Ticks the pump
 		All internal values are updated
+		:param now: The current time
 		:param time_delta_seconds: The time since last tick in seconds
 		"""
 
 		if self.__random__.random() < BASE_ERROR_CHANCE:
 			self.__error_ratio__ = 1
 
-		if 0 < self.__error_ratio__ <= MAX_ERROR_TICK:
+		if 0 < self.__error_ratio__ < MAX_ERROR_TICK:
 			self.__error_ratio__ += 1
 
 		error_multiplier: float = (MAX_ERROR_MULTIPLIER * (self.__error_ratio__ / MAX_ERROR_TICK)) if self.__error_ratio__ > 0 else 1
@@ -111,7 +113,8 @@ class MyOilPump:
 		Forces this pump into an error state
 		"""
 
-		self.__error_ratio__ = 1
+		if self.is_running:
+			self.__error_ratio__ = 1
 
 	def get_estimated_pump_state(self) -> float:
 		"""
