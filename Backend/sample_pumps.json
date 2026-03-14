@@ -1,0 +1,44 @@
+[
+  {
+    "pump-id": "a3f2c1d4-9b8e-4f7a-b1c2-d3e4f5a6b7c8",
+    "temperature": 118.7,
+    "pressure": 9.2,
+    "flow-rate": 142.0,
+    "rpm": 2950.0,
+    "operational-hours": 8742.5,
+    "requires-maintenance": true,
+    "load-percent": 0.97,
+    "timestamp": 1715000000,
+    "n-state": 0.18,
+    "is-running": true,
+    "anomaly_score": 0.93
+  },
+  {
+    "pump-id": "b4e3d2c1-0a9f-4e8b-c2d3-e4f5a6b7c8d9",
+    "temperature": 97.3,
+    "pressure": 8.4,
+    "flow-rate": 178.0,
+    "rpm": 2780.0,
+    "operational-hours": 5120.0,
+    "requires-maintenance": true,
+    "load-percent": 0.81,
+    "timestamp": 1715000060,
+    "n-state": 0.42,
+    "is-running": true,
+    "anomaly_score": 0.71
+  },
+  {
+    "pump-id": "d6a5f4e3-2c1b-4a0d-e4f5-a6b7c8d9e0f1",
+    "temperature": 74.0,
+    "pressure": 7.0,
+    "flow-rate": 225.0,
+    "rpm": 2580.0,
+    "operational-hours": 900.0,
+    "requires-maintenance": false,
+    "load-percent": 0.55,
+    "timestamp": 1715000180,
+    "n-state": 0.88,
+    "is-running": true,
+    "anomaly_score": 0.22
+  }
+]
