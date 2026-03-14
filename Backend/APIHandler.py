@@ -85,9 +85,65 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 			'operational-hours': pump.operational_hours,
 			'requires-maintenance': pump.requires_maintenance,
 			'load-percent': pump.load_percent,
-			'n-state': pump.get_estimated_pump_state(),
+			'health': pump.get_estimated_pump_state(),
+			'is-running': pump.is_running,
 			'timestamp': datetime.datetime.now(datetime.timezone.utc).timestamp(),
 		}
+
+	@api.endpoint('/pump-start')
+	def on_api_pump_start(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> int | dict[str, bool | str]:
+		"""
+		*API endpoint*
+		Attempts to start a pump
+		If pump health is low, request will be denied unless override enabled
+		:param session: The API session
+		:param request: The request body
+		:return: Pump start response
+		"""
+
+		request_pump_id: str = request.get('pump-id')
+		request_override: bool = request.get('override')
+
+		if (not isinstance(request_pump_id, str) and all(c in string.hexdigits for c in request_pump_id)) or not isinstance(request_override, bool):
+			return 400
+
+		target_pump_id: uuid.UUID = uuid.UUID(hex=request_pump_id)
+		pump: typing.Optional[Simulation.MyOilPump] = simulation.get_oil_pump(target_pump_id)
+
+		if pump is None:
+			return {'error': 'no-such-pump', 'pump-id': request_pump_id}
+		elif pump.is_running:
+			return {'result': False, 'start-message': 'Pump Already Started'}
+		elif pump.get_estimated_pump_state() < Simulation.MAXIMUM_HEALTH_THRESHOLD or request_override:
+			pump.start_pump()
+			return {'result': True, 'start-message': 'Pump Started'}
+		else:
+			return {'result': False, 'start-message': 'Pump Health Low'}
+
+	@api.endpoint('/pump-stop')
+	def on_api_pump_stop(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> int | dict[str, bool | str]:
+		"""
+		*API endpoint*
+		Stops a pump
+		:param session: The API session
+		:param request: The request body
+		:return: Pump stop response
+		"""
+
+		request_pump_id: str = request.get('pump-id')
+
+		if (not isinstance(request_pump_id, str) and all(c in string.hexdigits for c in request_pump_id)):
+			return 400
+
+		target_pump_id: uuid.UUID = uuid.UUID(hex=request_pump_id)
+		pump: typing.Optional[Simulation.MyOilPump] = simulation.get_oil_pump(target_pump_id)
+
+		if pump is None:
+			return {'error': 'no-such-pump', 'pump-id': request_pump_id}
+		elif not pump.is_running:
+			return {'result': False, 'stop-message': 'Pump Already Stopped'}
+		else:
+			return {'result': True, 'start-message': 'Pump Stopped'}
 
 	def closer() -> None:
 		"""

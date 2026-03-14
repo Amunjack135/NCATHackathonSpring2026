@@ -6,10 +6,13 @@ import sys
 import threading
 import time
 import typing
+import uuid
 import waitress
 
 import CustomMethodsVI.Connection as Connection
+import CustomMethodsVI.FileSystem as FileSystem
 import CustomMethodsVI.Logger as Logger
+import CustomMethodsVI.Stream as Stream
 
 import APIHandler
 import Simulation
@@ -17,17 +20,16 @@ import SocketHandler
 
 
 # Server Setup
+ROOT: FileSystem.Directory = FileSystem.File(__file__).parent
+PUMP_CSV_SAVE_TIME: float = 30
+
 logger: Logger.Logger = Logger.Logger(sys.stdout, datetime.datetime.now().astimezone().tzinfo)
+pump_data_directory: FileSystem.Directory = ROOT.cd('/data/pumps')
 oil_field_simulation: Simulation.MyOilFieldSimulation = Simulation.MyOilFieldSimulation()
 app: flask.Flask = flask.Flask(__name__)
 server: Connection.FlaskSocketioServer = Connection.FlaskSocketioServer(app)
 api_closer: typing.Callable[[], None] = APIHandler.init(server, logger, oil_field_simulation)
 socket_closer: typing.Callable[[], None] = SocketHandler.init(server, logger)
-
-# Oil Pump Setup
-
-for i in range(8):
-	oil_field_simulation.add_oil_pump()
 
 
 # Flask routes
@@ -59,15 +61,57 @@ def simulate(event: threading.Event) -> None:
 	:param event: The threading event to close this thread
 	"""
 
+	pump_data_files: dict[uuid.UUID, Stream.FileStream] = {}
+
 	try:
+		for i in range(8):
+			oil_field_simulation.add_oil_pump()
+
+		if not pump_data_directory.exists():
+			pump_data_directory.create()
+		else:
+			for file in pump_data_directory.files:
+				file.delete()
+
+		for pump in oil_field_simulation.pumps:
+			file: FileSystem.File = pump_data_directory.file(f'{pump.uuid}.csv')
+			fstream: Stream.FileStream = file.open('w')
+			pump_data_files[pump.uuid] = fstream
+			fstream.write('Timestamp,Temperature,Pressure,Flow Rate,RPM,Operational Hours,Requires Maintenance,Load Percent,Is Running\n')
+			fstream.flush()
+
 		logger.info('\033[38;2;50;255;50m[*] Oil field simulation started\033[0m')
+		csv_save_time: float = time.perf_counter() - PUMP_CSV_SAVE_TIME
 
 		while not event.is_set():
 			oil_field_simulation.tick()
+
+			if time.perf_counter() - csv_save_time >= PUMP_CSV_SAVE_TIME:
+				csv_save_time = time.perf_counter()
+				save_time: float = datetime.datetime.now(datetime.timezone.utc).timestamp()
+
+				for pump in oil_field_simulation.pumps:
+					fstream: Stream.FileStream = pump_data_files[pump.uuid]
+					fstream.write(f'{save_time},{pump.temperature},{pump.pressure},{pump.flow_rate},{pump.rpm},{pump.operational_hours},{pump.requires_maintenance},{pump.load_percent},{pump.is_running}\n')
+					fstream.flush()
+
+				logger.info(f'\033[38;2;50;255;255m[*] Saved {len(oil_field_simulation)} pumps to CSV files @ {pump_data_directory.abspath}\033[0m')
 			time.sleep(1 / 60)
+
 	except KeyboardInterrupt:
 		pass
 	finally:
+		save_time: float = datetime.datetime.now(datetime.timezone.utc).timestamp()
+
+		for pump in oil_field_simulation.pumps:
+			fstream: Stream.FileStream = pump_data_files[pump.uuid]
+			fstream.write(f'{save_time},{pump.temperature},{pump.pressure},{pump.flow_rate},{pump.rpm},{pump.operational_hours},{pump.requires_maintenance},{pump.load_percent},{pump.is_running}\n')
+			fstream.flush()
+
+		for fstream in pump_data_files.values():
+			fstream.close()
+
+		logger.info(f'\033[38;2;50;255;255m[*] Saved {len(oil_field_simulation)} pumps to CSV files @ {pump_data_directory.abspath}\033[0m')
 		logger.info('\033[38;2;255;50;50m[!] Oil filed simulation stopped\033[0m')
 
 

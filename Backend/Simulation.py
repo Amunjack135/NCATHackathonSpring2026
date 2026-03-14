@@ -14,6 +14,7 @@ FLOW_RATE_SCALAR: float = 0.001
 RPM_SCALAR: float = 0.5
 LOAD_PERCENT_SCALAR: float = 0.5
 VIBRATION_SCALAR: float = 0.25
+MAXIMUM_HEALTH_THRESHOLD: float = 0.825
 
 
 class MyOilPump:
@@ -176,6 +177,13 @@ class MyOilFieldSimulation:
 
 		self.__pumps__: dict[uuid.UUID, MyOilPump] = {}
 		self.__last_tick__: float = ...
+
+	def __len__(self) -> int:
+		"""
+		:return: The number of pumps in this field
+		"""
+
+		return len(self.__pumps__)
 
 	def tick(self) -> None:
 		"""
