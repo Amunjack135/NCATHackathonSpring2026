@@ -1,8 +1,12 @@
+bs4
 dill
 flask
 flask-socketio
 gevent
 gevent-websocket
+psutil
+python-dateutil
 python-socketio
+typeguard
 websocket-client
 waitress
