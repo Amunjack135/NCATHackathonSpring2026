@@ -24,6 +24,7 @@ import SocketHandler
 ROOT: FileSystem.Directory = FileSystem.File(__file__).parent
 PUMP_CSV_SAVE_TIME: float = 30
 LOG_DIRECTORY: FileSystem.Directory = ROOT.cd('logs')
+LOG_DIRECTORY.create()  # Ensure logs directory exists
 LOGFILE: FileSystem.File = LOG_DIRECTORY.file('latest.log')
 LOGSTREAM: Stream.FileStream = LOGFILE.open('w')
 
