@@ -3,6 +3,7 @@ import time
 import typing
 import uuid
 
+from HealthModel import PumpHealthAnalyzer
 
 BASE_ERROR_CHANCE: float = 0.025
 BASE_TEMPERATURE: float = 20
@@ -44,6 +45,7 @@ class MyOilPump:
 		self.__requires_maintenance__: bool = bool(requires_maintenance)
 		self.__running__: bool = False
 		self.__error_ratio__: int = 0
+		self.__health_analyzer__: PumpHealthAnalyzer = PumpHealthAnalyzer(window_size=10)
 
 	def start_pump(self) -> None:
 		"""
@@ -99,10 +101,39 @@ class MyOilPump:
 	def get_estimated_pump_state(self) -> float:
 		"""
 		Gets the estimated health of the pump (between 0 and 1) based on all pump values
-		:return: The pump health
+		:return: The pump health score (1.0 = healthy, 0.0 = failed)
 		"""
+		health_metrics = self.__health_analyzer__.calculate_health(
+			temperature=self.__temperature__,
+			vibration=self.__vibration__,
+			load_percent=self.__load_percent__,
+			operational_hours=self.__operational_hours__
+		)
+		return health_metrics.overall_health
 
-		pass
+	def get_health_metrics(self):
+		"""
+		Gets detailed health metrics for this pump
+		:return: HealthMetrics object with all diagnostic information
+		"""
+		return self.__health_analyzer__.calculate_health(
+			temperature=self.__temperature__,
+			vibration=self.__vibration__,
+			load_percent=self.__load_percent__,
+			operational_hours=self.__operational_hours__
+		)
+
+	def predict_failure(self):
+		"""
+		Predicts pump failure based on current trends
+		:return: FailurePrediction object with time-to-failure estimate
+		"""
+		return self.__health_analyzer__.predict_failure(
+			temperature=self.__temperature__,
+			vibration=self.__vibration__,
+			load_percent=self.__load_percent__,
+			operational_hours=self.__operational_hours__
+		)
 
 	@property
 	def uuid(self) -> uuid.UUID:
@@ -167,6 +198,14 @@ class MyOilPump:
 		"""
 
 		return self.__load_percent__
+
+	@property
+	def vibration(self) -> float:
+		"""
+		:return: The current pump vibration level
+		"""
+
+		return self.__vibration__
 
 	@property
 	def is_running(self) -> bool:
