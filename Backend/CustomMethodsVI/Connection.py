@@ -1033,7 +1033,7 @@ class FlaskServerAPI:
 		except (ValueError, TypeError):
 			return None
 	
-	def __init__(self, app: flask.Flask, route: str = '/api', *, requires_auth: bool = False):
+	def __init__(self, app: flask.Flask, route: str = '/api', *, requires_auth: bool = False, auth_session_timeout: float = 300):
 		"""
 		Class wrapping generic functionality for flask API endpoints\n
 		- Constructor -

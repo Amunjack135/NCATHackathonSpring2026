@@ -18,30 +18,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 	:return: The closer to close API gateway
 	"""
 
-	api: Connection.FlaskServerAPI = Connection.FlaskServerAPI(server.app, '/api', requires_auth=True)
-
-	@api.connector
-	def on_api_connect(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> int:
-		"""
-		Callback for API connect
-		:param session: Connection request session
-		:param request: Connection request body
-		:return: HTTP response code
-		"""
-
-		logger.info(f'\033[38;2;50;50;255m[*] API session connected with new token {session.token}\033[0m')
-		return 200
-
-	@api.disconnector
-	def on_api_disconnect(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> None:
-		"""
-		Callback for API disconnect
-		:param session: Disconnection request session
-		:param request: Disconnection request body
-		"""
-
-		logger.info(f'\033[38;2;255;50;255m[*] API session disconnected ({session.token})\033[0m')
-		return
+	api: Connection.FlaskServerAPI = Connection.FlaskServerAPI(server.app, '/api', requires_auth=False)
 
 	@api.endpoint('/pumps')
 	def on_api_pumps(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> dict[str, float]:

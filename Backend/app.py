@@ -23,7 +23,7 @@ import SocketHandler
 
 # Server Setup
 ROOT: FileSystem.Directory = FileSystem.File(__file__).parent
-PUMP_CSV_SAVE_TIME: float = 10
+PUMP_CSV_SAVE_TIME: float = 30
 
 logger: Logger.Logger = Logger.Logger(sys.stdout if isinstance(sys.stdout, io.IOBase) else DevNull.NullStream(), datetime.datetime.now().astimezone().tzinfo)
 pump_data_directory: FileSystem.Directory = ROOT.cd('/data/pumps')
