@@ -237,7 +237,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 				pump.move_to_error_state()
 				return {'success': 'moved-pump-to-error', 'result': True}
 		finally:
-			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-failure-reason\' (REQUEST={request})\033[0m')
+			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/move-pump-to-error-state\' (REQUEST={request})\033[0m')
 
 	def closer() -> None:
 		"""
