@@ -55,6 +55,18 @@ def gui_main(halt_event: threading.Event, logger: Logger.Logger, simulation: Sim
 		target, x, y = get_monitor_position(data)
 		dpg.set_viewport_pos([x, y])
 
+	def start_all_pumps(sender: int, data: str) -> None:
+		for pump in simulation.pumps:
+			pump.start_pump()
+
+	def stop_all_pumps(sender: int, data: str) -> None:
+		for pump in simulation.pumps:
+			pump.stop_pump()
+
+	def fail_all_pumps(sender: int, data: str) -> None:
+		for pump in simulation.pumps:
+			pump.move_to_error_state()
+
 	def tick() -> None:
 		nonlocal widget_parent
 		row_height: int = round(dpg.get_viewport_height() * 0.25)
@@ -177,9 +189,6 @@ def gui_main(halt_event: threading.Event, logger: Logger.Logger, simulation: Sim
 	with dpg.theme() as window_theme:
 		with dpg.theme_component(dpg.mvAll):
 			dpg.add_theme_color(dpg.mvThemeCol_WindowBg, BG_COLOR_0, category=dpg.mvThemeCat_Core)
-			dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 0, 0)
-			dpg.add_theme_style(dpg.mvStyleVar_FramePadding, 0, 0)
-			dpg.add_theme_style(dpg.mvStyleVar_ItemSpacing, 0, 0)
 
 	with dpg.handler_registry():
 		dpg.add_key_release_handler(dpg.mvKey_Escape, callback=lambda: halt_event.set())
@@ -187,7 +196,14 @@ def gui_main(halt_event: threading.Event, logger: Logger.Logger, simulation: Sim
 	with dpg.window(tag='PrimaryWindow'):
 		dpg.bind_font('Font0')
 
-		dpg.add_listbox([monitor.name for monitor in screeninfo.get_monitors()], label='Display', width=-1, callback=set_monitor)
+		with dpg.menu_bar():
+			with dpg.menu(label='Display'):
+				for monitor in screeninfo.get_monitors():
+					dpg.add_menu_item(label=monitor.name, callback=lambda s, d, *, name=monitor.name: set_monitor(s, name))
+
+			dpg.add_menu_item(label='Start All', callback=start_all_pumps)
+			dpg.add_menu_item(label='Stop All', callback=stop_all_pumps)
+			dpg.add_menu_item(label='Fail All', callback=fail_all_pumps)
 
 		with dpg.table(resizable=False, policy=dpg.mvTable_SizingStretchProp, header_row=False) as pump_list:
 			dpg.add_table_column(init_width_or_weight=1)
