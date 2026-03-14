@@ -2,7 +2,6 @@ import atexit
 
 import datetime
 import flask
-import io
 import sys
 import threading
 import time
@@ -24,8 +23,27 @@ import SocketHandler
 # Server Setup
 ROOT: FileSystem.Directory = FileSystem.File(__file__).parent
 PUMP_CSV_SAVE_TIME: float = 30
+LOGFILE: FileSystem.File = ROOT.file('latest.log')
+LOGSTREAM: Stream.FileStream = LOGFILE.open('w')
 
-logger: Logger.Logger = Logger.Logger(sys.stdout if isinstance(sys.stdout, io.IOBase) else DevNull.NullStream(), datetime.datetime.now().astimezone().tzinfo)
+event_stream: Stream.EventedStream[str] = Stream.EventedStream()
+line: list[str] = []
+
+
+@event_stream.on('write')
+def on_std_write(msg: str) -> None:
+	for c in msg:
+		line.append(c)
+
+		if c == '\n':
+			data: str = ''.join(line)
+			line.clear()
+			sys.stdout.write(data)
+			LOGSTREAM.write(data)
+			LOGSTREAM.flush()
+
+
+logger: Logger.Logger = Logger.Logger(event_stream, datetime.datetime.now().astimezone().tzinfo)
 pump_data_directory: FileSystem.Directory = ROOT.cd('/data/pumps')
 oil_field_simulation: Simulation.MyOilFieldSimulation = Simulation.MyOilFieldSimulation()
 app: flask.Flask = flask.Flask(__name__)
@@ -104,6 +122,7 @@ def simulate(event: threading.Event) -> None:
 					fstream.flush()
 
 				logger.info(f'\033[38;2;50;255;255m[*] Saved {len(oil_field_simulation)} pumps to CSV files @ {pump_data_directory.abspath}\033[0m')
+
 			time.sleep(1 / 60)
 
 	except KeyboardInterrupt:
@@ -135,6 +154,8 @@ def finalize() -> None:
 	simulation_thread.join()
 	logger.info('\033[38;2;255;50;50m[!] Server Closed\033[0m')
 	logger.detach()
+	LOGSTREAM.flush()
+	LOGSTREAM.close()
 
 
 simulation_flag: threading.Event = threading.Event()
