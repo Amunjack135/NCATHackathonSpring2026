@@ -1060,7 +1060,7 @@ class FlaskServerAPI:
 		self.__connector__: typing.Optional[collections.abc.Callable[[FlaskServerAPI.APISessionInfo, collections.abc.Mapping[str, typing.Any]], bool | int | typing.Mapping[str, typing.Any] | None] | tuple[bool | int, collections.abc.Mapping[str, typing.Any]]] = None
 		self.__disconnector__: typing.Optional[collections.abc.Callable[[FlaskServerAPI.APISessionInfo, collections.abc.Mapping[str, typing.Any]], collections.abc.Mapping[str, typing.Any] | None]] = None
 		self.__setup_auth_channels__()
-		self.__app__.add_url_rule(f'{self.__route__}/<path:route>', view_func=self.__flask_route__, provide_automatic_options=True, methods=('POST', 'GET'), endpoint=f'{self.__route__.replace('/', '_')}_flaskroute')
+		self.__app__.add_url_rule(f'{self.__route__}/<path:route>', view_func=self.__flask_route__, provide_automatic_options=True, methods=('POST', 'GET', 'OPTIONS'), endpoint=f'{self.__route__.replace('/', '_')}_flaskroute')
 			
 	def __setup_auth_channels__(self) -> None:
 		"""
