@@ -22,7 +22,7 @@ import SocketHandler
 
 # Server Setup
 ROOT: FileSystem.Directory = FileSystem.File(__file__).parent
-LOGS: FileSystem.Directory = ROOT.cd('logs')
+LOGS: FileSystem.Directory = ROOT.cd('flask-application-logs')
 PUMP_CSV_SAVE_TIME: float = 30
 LOGS.create()
 LOGFILE: FileSystem.File = LOGS.file('latest.log')
@@ -63,6 +63,12 @@ def index() -> flask.Response:
 @app.route('/health')
 def health() -> flask.Response:
 	return flask.Response('OK', status=200)
+
+
+@app.route('/log')
+def health() -> flask.Response:
+	log_data: str = LOGFILE.single_read()
+	return flask.Response(log_data, status=200)
 
 
 # Main program code
