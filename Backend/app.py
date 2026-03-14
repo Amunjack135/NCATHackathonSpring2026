@@ -16,6 +16,7 @@ import CustomMethodsVI.Logger as Logger
 import CustomMethodsVI.Stream as Stream
 
 import APIHandler
+import ServerInterface
 import Simulation
 import SocketHandler
 
@@ -84,9 +85,11 @@ def main() -> None:
 	Starts the server
 	"""
 
+	gui_closer: typing.Callable[[], None] = ServerInterface.init(server, logger, oil_field_simulation)
 	logger.info('\033[38;2;50;255;50m[*] Server Started\033[0m')
 	waitress.serve(app, port=443, threads=psutil.cpu_count())
 	simulation_flag.set()
+	gui_closer()
 
 
 def simulate(event: threading.Event) -> None:
@@ -105,7 +108,10 @@ def simulate(event: threading.Event) -> None:
 			pump_data_directory.create()
 		else:
 			for file in pump_data_directory.files:
-				file.delete()
+				try:
+					file.delete()
+				except OSError as err:
+					logger.error(f'\033[38;2;255;50;50m[!] Failed to delete old pump CSV -> "{file.abspath}" >> {err}\033[0m')
 
 		for pump in oil_field_simulation.pumps:
 			file: FileSystem.File = pump_data_directory.file(f'{pump.uuid}.csv')
@@ -147,7 +153,7 @@ def simulate(event: threading.Event) -> None:
 			fstream.close()
 
 		logger.info(f'\033[38;2;50;255;255m[*] Saved {len(oil_field_simulation)} pumps to CSV files @ {pump_data_directory.abspath}\033[0m')
-		logger.info('\033[38;2;255;50;50m[!] Oil filed simulation stopped\033[0m')
+		logger.info('\033[38;2;255;50;50m[!] Oil field simulation stopped\033[0m')
 
 
 def finalize() -> None:

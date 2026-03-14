@@ -1,12 +1,10 @@
 import datetime
-import json
 import string
 import typing
 import uuid
 
 import CustomMethodsVI.Connection as Connection
 import CustomMethodsVI.Logger as Logger
-import CustomMethodsVI.Stream as Stream
 
 import Simulation
 
@@ -179,7 +177,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 			request_pump_id: str = request.get('pump-id')
 			request_timestamp: float = request.get('timestamp')
 
-			if request_pump_id is None or request_timestamp is None or not isinstance(request_pump_id, str) or any(c not in string.hexdigits and c != '-' for c in request_pump_id) or not isinstance(request_timestamp, float) or (request_timestamp := float(request_timestamp)) <= 0:
+			if request_pump_id is None or request_timestamp is None or not isinstance(request_pump_id, str) or any(c not in string.hexdigits and c != '-' for c in request_pump_id) or not isinstance(request_timestamp, (int, float)) or (request_timestamp := float(request_timestamp)) <= 0:
 				return 400
 
 			target_pump_id: uuid.UUID = uuid.UUID(hex=request_pump_id)
@@ -191,8 +189,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 			elif metric is None:
 				return {'error': 'no-such-metric', 'timestamp': request_timestamp}
 			else:
-				sstream: Stream.StringStream = Stream.StringStream()
-				json.dump({
+				summary: str = pump_analyzer.analyze_from_json({
 					'pump-id': str(pump.uuid),
 					'temperature': metric[0],
 					'pressure': metric[1],
@@ -205,8 +202,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 					'timestamp': request_timestamp,
 					'n-state': metric[7],
 					'is-running': metric[9],
-				}, sstream)
-				summary: str = pump_analyzer.analyze_from_file(sstream)[0]
+				})[0]
 				return {'summary': summary}
 		finally:
 			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-failure-reason\' (REQUEST={request})\033[0m')

@@ -6,7 +6,6 @@ Uses OpenAI API to Detect → Decide → Act → Explain
 import json
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 from openai import OpenAI
 
@@ -244,6 +243,18 @@ def analyze_from_file(json_path: str) -> list:
     with open(json_path) as f:
         data = json.load(f)
 
+    pumps    = data if isinstance(data, list) else [data]
+    analyzer = PumpAnalyzer()
+    return analyzer.analyze_batch(pumps)
+
+
+def analyze_from_json(data: dict[str, float | bool]) -> list:
+    """
+    Load a JSON string (single pump dict OR list of pump dicts) and analyze.
+
+    Returns:
+        List of PumpAnalysis objects sorted by severity.
+    """
     pumps    = data if isinstance(data, list) else [data]
     analyzer = PumpAnalyzer()
     return analyzer.analyze_batch(pumps)
