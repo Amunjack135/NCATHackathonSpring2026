@@ -1,12 +1,16 @@
 import datetime
+import json
 import string
 import typing
 import uuid
 
 import CustomMethodsVI.Connection as Connection
 import CustomMethodsVI.Logger as Logger
+import CustomMethodsVI.Stream as Stream
 
 import Simulation
+
+import pump_analyzer
 
 
 def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulation: Simulation.MyOilFieldSimulation) -> typing.Callable[[], None]:
@@ -42,7 +46,7 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 		Gets detailed information about the specified pump
 		:param session: The API session
 		:param request: The request body
-		:return: A mapping of all pump values
+		:return: A mapping of the specified pump values
 		"""
 
 		try:
@@ -72,6 +76,33 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 			}
 		finally:
 			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-status\' (REQUEST={request})\033[0m')
+
+	@api.endpoint('/pump-statuses')
+	def on_api_pump_statuses(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> int | dict[str, dict[str, float | str | bool]]:
+		"""
+		*API endpoint*
+		Gets detailed information about all pumps
+		:param session: The API session
+		:param request: The request body
+		:return: A mapping of all pump values
+		"""
+
+		try:
+			return {str(pump.uuid): {
+				'pump-id': str(pump.uuid),
+				'temperature': pump.temperature,
+				'pressure': pump.pressure,
+				'flow-rate': pump.flow_rate,
+				'rpm': pump.rpm,
+				'operational-hours': pump.operational_hours,
+				'requires-maintenance': pump.requires_maintenance,
+				'load-percent': pump.load_percent,
+				'health': pump.get_estimated_pump_state(),
+				'is-running': pump.is_running,
+				'timestamp': datetime.datetime.now(datetime.timezone.utc).timestamp(),
+			} for pump in simulation.pumps}
+		finally:
+			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-statuses\' (REQUEST={request})\033[0m')
 
 	@api.endpoint('/pump-start')
 	def on_api_pump_start(session: Connection.FlaskServerAPI.APISessionInfo, request: dict) -> int | dict[str, bool | str]:
@@ -153,14 +184,30 @@ def init(server: Connection.FlaskSocketioServer, logger: Logger.Logger, simulati
 
 			target_pump_id: uuid.UUID = uuid.UUID(hex=request_pump_id)
 			pump: typing.Optional[Simulation.MyOilPump] = simulation.get_oil_pump(target_pump_id)
-			metric: typing.Optional[tuple[float | bool]] = pump.get_runtime_metric_for_timestamp(request_timestamp, 1) if pump is not None else pump
+			metric: typing.Optional[tuple[float | bool, ...]] = pump.get_runtime_metric_for_timestamp(request_timestamp, 1) if pump is not None else pump
 
 			if pump is None:
 				return {'error': 'no-such-pump', 'pump-id': request_pump_id}
 			elif metric is None:
 				return {'error': 'no-such-metric', 'timestamp': request_timestamp}
 			else:
-				return {'summary': ''}
+				sstream: Stream.StringStream = Stream.StringStream()
+				json.dump({
+					'pump-id': str(pump.uuid),
+					'temperature': metric[0],
+					'pressure': metric[1],
+					'flow-rate': metric[2],
+					'rpm': metric[3],
+					'load-percent': metric[4],
+					'vibration': metric[5],
+					'operational-hours': metric[6],
+					'requires-maintenance': metric[8],
+					'timestamp': request_timestamp,
+					'n-state': metric[7],
+					'is-running': metric[9],
+				}, sstream)
+				summary: str = pump_analyzer.analyze_from_file(sstream)[0]
+				return {'summary': summary}
 		finally:
 			logger.info(f'\033[38;2;255;0;255m[*] API request at \'/pump-failure-reason\' (REQUEST={request})\033[0m')
 

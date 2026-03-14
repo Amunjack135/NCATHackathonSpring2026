@@ -93,7 +93,11 @@ class MyOilPump:
 		self.__vibration__ += (target_vibration - self.__vibration__) * VIBRATION_SCALAR
 
 		self.__operational_hours__ += time_delta_seconds
-		self.__runtime_metrics__[now] = (self.temperature, self.pressure, self.flow_rate, self.rpm, self.load_percent, self.vibration, self.operational_hours)
+		health: float = self.get_estimated_pump_state()
+		self.__runtime_metrics__[now] = (self.temperature, self.pressure, self.flow_rate, self.rpm, self.load_percent, self.vibration, self.operational_hours, health, self.is_running, self.requires_maintenance)
+
+		if health < 0.25:
+			self.stop_pump()
 
 		closed_metrics: list[datetime.datetime] = []
 
