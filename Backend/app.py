@@ -46,6 +46,12 @@ def health() -> flask.Response:
 
 
 # Main program code
+@app.after_request
+def on_response(response: flask.Response) -> flask.Response:
+	response.headers['Access-Control-Allow-Origin'] = '*'
+	return response
+
+
 def main() -> None:
 	"""
 	*Main entry point*
